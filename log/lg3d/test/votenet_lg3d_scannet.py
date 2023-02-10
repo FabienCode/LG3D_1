@@ -1,5 +1,5 @@
 dataset_type = 'ScanNetDataset'
-data_root = '/mnt/data/Downloads/scannet/'
+data_root = '/media/liuxm94/macext/Downloads/scannet/'
 class_names = ('cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window',
                'bookshelf', 'picture', 'counter', 'desk', 'curtain',
                'refrigerator', 'showercurtrain', 'toilet', 'sink', 'bathtub',
@@ -113,8 +113,9 @@ data = dict(
         times=5,
         dataset=dict(
             type='ScanNetDataset',
-            data_root='/mnt/data/Downloads/scannet/',
-            ann_file='/mnt/data/Downloads/scannet/scannet_infos_train.pkl',
+            data_root='/media/liuxm94/macext/Downloads/scannet/',
+            ann_file=
+            '/media/liuxm94/macext/Downloads/scannet/scannet_infos_train.pkl',
             pipeline=[
                 dict(
                     type='lg3d_LoadPointsFromFile',
@@ -171,8 +172,9 @@ data = dict(
             file_client_args=dict(backend='disk'))),
     val=dict(
         type='ScanNetDataset',
-        data_root='/mnt/data/Downloads/scannet/',
-        ann_file='/mnt/data/Downloads/scannet/scannet_infos_val.pkl',
+        data_root='/media/liuxm94/macext/Downloads/scannet/',
+        ann_file=
+        '/media/liuxm94/macext/Downloads/scannet/scannet_infos_val.pkl',
         pipeline=[
             dict(
                 type='LoadPointsFromFile',
@@ -220,8 +222,9 @@ data = dict(
         file_client_args=dict(backend='disk')),
     test=dict(
         type='ScanNetDataset',
-        data_root='/mnt/data/Downloads/scannet/',
-        ann_file='/mnt/data/Downloads/scannet/scannet_infos_val.pkl',
+        data_root='/media/liuxm94/macext/Downloads/scannet/',
+        ann_file=
+        '/media/liuxm94/macext/Downloads/scannet/scannet_infos_val.pkl',
         pipeline=[
             dict(
                 type='LoadPointsFromFile',

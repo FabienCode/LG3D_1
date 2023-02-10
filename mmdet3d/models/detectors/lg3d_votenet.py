@@ -18,7 +18,7 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
                  anno_descriptor,
                  attention,
                  bbox_head=None,
-                 train_cfg=None,                                                                                    
+                 train_cfg=None,
                  test_cfg=None,
                  init_cfg=None,
                  pretrained=None):
@@ -33,11 +33,11 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
             test_cfg=test_cfg,
             init_cfg=None,
             pretrained=pretrained)
-        self.feature_adapt = nn.Sequential(
-            nn.Conv1d(256, 256, 3, 1, 1),
-            nn.ReLU(),
-            nn.Conv1d(256, 256, 3, 1 ,1)
-        )
+        # self.feature_adapt = nn.Sequential(
+        #     nn.Conv1d(256, 256, 3, 1, 1),
+        #     nn.ReLU(),
+        #     nn.Conv1d(256, 256, 3, 1 ,1)
+        # )
         # self.layernorm = nn.GroupNorm(num_groups=1, num_channels=256, affine=False)
 
     def forward_train(self,
@@ -74,34 +74,40 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
                        pts_instance_mask, img_metas)
         losses = self.bbox_head.loss(
             bbox_preds, *loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
-        
+
         # obtain annotations
         anno = self.extract_para_scannet(gt_bboxes_3d, gt_labels_3d).cuda()
         anno_feature = self.anno_descriptor(anno)
-        
+
         # label point clouds
         label_points_cat = torch.stack(label_points)
         label_points_feature = self.label_encoder(label_points_cat)
-        
+
         # teacher feature
         teacher_feature = self.t_backbone(points_cat)
-        
-        label_attention_anno = self.attention(label_points_feature['fp_features'][-1],
-                                                                 anno_feature,
-                                                                 anno_feature)
-        
-        teacher_attention_label = self.attention(teacher_feature['fp_features'][-1],
-                                                label_attention_anno,
-                                                label_attention_anno)
-        
-        t_bbox_pred = self.bbox_head(teacher_feature, self.train_cfg.sample_mod)
-        t_loss_inputs = (points, gt_bboxes_3d, gt_labels_3d, pts_semantic_mask, pts_instance_mask, img_metas)
-        t_loss = self.bbox_head.loss(t_bbox_pred, *t_loss_inputs, gt_bboxes_ignore)
+
+        label_attention_anno = self.attention_1(label_points_feature['fp_features'][-1],
+                                                anno_feature,
+                                                anno_feature)
+
+        teacher_attention_label = self.attention_2(teacher_feature['fp_features'][-1],
+                                                   label_attention_anno,
+                                                   label_attention_anno)
+        teacher_final_feature = teacher_feature
+        teacher_final_feature['fp_features'][-1] = teacher_attention_label
+
+        t_bbox_pred = self.bbox_head(
+            teacher_final_feature, self.train_cfg.sample_mod)
+        t_loss_inputs = (points, gt_bboxes_3d, gt_labels_3d,
+                         pts_semantic_mask, pts_instance_mask, img_metas)
+        t_loss = self.bbox_head.loss(
+            t_bbox_pred, *t_loss_inputs, gt_bboxes_ignore)
         for k, v in t_loss.items():
             losses['label_' + k] = v
-            
+
         t_encodings = teacher_attention_label.detach()
         s_feature = x['fp_features'][-1]
+
         losses['Label-Guided-losses'] = 10 * F.mse_loss(t_encodings, s_feature)
         return losses
 
@@ -150,7 +156,7 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
                                             self.bbox_head.test_cfg)
 
         return [merged_bboxes]
-    
+
     def extract_para_scannet(self, gt_bboxes_3d, gt_labels_3d):
         mean_sizes = [[0.76966727, 0.8116021, 0.92573744],
                       [1.876858, 1.8425595, 1.1931566],
@@ -186,7 +192,8 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
             # (dir_class_target, dir_res_target) = self.angle2class(gt_bboxes_3d[i].yaw) # sunrgbd
             box_num = gt_labels_3d[i].shape[0]
             dir_class_target = gt_labels_3d[i].new_zeros(box_num)  # scannet
-            dir_res_target = gt_bboxes_3d[i].tensor.new_zeros(box_num)  # scannet
+            dir_res_target = gt_bboxes_3d[i].tensor.new_zeros(
+                box_num)  # scannet
             size_class_target = size_class_target.reshape(box_num, 1)
             dir_class_target = dir_class_target.reshape(box_num, 1)
             dir_res_target = dir_res_target.reshape(box_num, 1)
@@ -209,8 +216,10 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
         label_one_hot = list()
         for i in range(len(gt_labels_3d)):
             # tmp_label_one_hot = to_one_hot(gt_labels_3d[i], 10)
-            gt_labels_3d_tmp = gt_labels_3d[i].reshape(gt_labels_3d[i].shape[0], 1).cuda()
-            tmp_label_one_hot = torch.zeros(gt_labels_3d_tmp.shape[0], 18).cuda().scatter_(1, gt_labels_3d_tmp, 1)
+            gt_labels_3d_tmp = gt_labels_3d[i].reshape(
+                gt_labels_3d[i].shape[0], 1).cuda()
+            tmp_label_one_hot = torch.zeros(
+                gt_labels_3d_tmp.shape[0], 18).cuda().scatter_(1, gt_labels_3d_tmp, 1)
             tmp_label_one_hot = F.softmax(tmp_label_one_hot, dim=-1)
             # tmp_label_one_hot = self.embedding(gt_labels_3d[i].cuda())
 
@@ -226,6 +235,3 @@ class lg3d_VoteNet(lg3d_SingleStage3DDetector):
 
         gt_para_cat = torch.stack(gt_para)
         return gt_para_cat
-            
-
-        

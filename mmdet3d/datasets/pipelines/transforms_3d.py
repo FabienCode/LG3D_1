@@ -189,7 +189,8 @@ class RandomFlip3D(RandomFlip):
         repr_str += f'(sync_2d={self.sync_2d},'
         repr_str += f' flip_ratio_bev_vertical={self.flip_ratio_bev_vertical})'
         return repr_str
-    
+
+
 @PIPELINES.register_module()
 class lg3d_RandomFlip3D(RandomFlip):
     """Flip the points & bbox.
@@ -816,7 +817,8 @@ class GlobalAlignment(object):
         repr_str = self.__class__.__name__
         repr_str += f'(rotation_axis={self.rotation_axis})'
         return repr_str
-    
+
+
 @PIPELINES.register_module()
 class lg3d_GlobalAlignment(object):
     """Apply global alignment to 3D scene points by rotation and translation.
@@ -1070,7 +1072,8 @@ class GlobalRotScaleTrans(object):
         repr_str += f' translation_std={self.translation_std},'
         repr_str += f' shift_height={self.shift_height})'
         return repr_str
-    
+
+
 @PIPELINES.register_module()
 class lg3d_GlobalRotScaleTrans(object):
     """Apply global rotation, scaling and translation to a 3D scene.
@@ -1131,7 +1134,7 @@ class lg3d_GlobalRotScaleTrans(object):
         trans_factor = np.random.normal(scale=translation_std, size=3).T
 
         input_dict['points'].translate(trans_factor)
-        if 'label_points'in input_dict:
+        if 'label_points' in input_dict:
             input_dict['label_points'].translate(trans_factor)
         input_dict['pcd_trans'] = trans_factor
         for key in input_dict['bbox3d_fields']:
@@ -1185,7 +1188,7 @@ class lg3d_GlobalRotScaleTrans(object):
         scale = input_dict['pcd_scale_factor']
         points = input_dict['points']
         points.scale(scale)
-        
+
         # operate label points
         if 'label_points' in input_dict:
             label_points = input_dict['label_points']
@@ -1195,7 +1198,8 @@ class lg3d_GlobalRotScaleTrans(object):
                 'setting shift_height=True but points have no height attribute'
             points.tensor[:, points.attribute_dims['height']] *= scale
             if 'label_points' in input_dict:
-                label_points.tensor[:, label_points.attribute_dims['height']] *= scale
+                label_points.tensor[:,
+                                    label_points.attribute_dims['height']] *= scale
         input_dict['points'] = points
         input_dict['label_points'] = label_points
 
@@ -1525,7 +1529,8 @@ class PointSample(object):
         repr_str += f' replace={self.replace})'
 
         return repr_str
-    
+
+
 @PIPELINES.register_module()
 class lg3d_PointSample(object):
     """Point sample.
@@ -1611,18 +1616,18 @@ class lg3d_PointSample(object):
             self.replace,
             return_choices=True)
         results['points'] = points
-        
+
         # label_points_sample
-        if 'label_points' in results:
-            label_points = results['label_points']
-            label_points, label_choices = self._points_random_sampling(
-                label_points,
-                self.num_points,
-                self.sample_range,
-                self.replace,
-                return_choices=True
-            )
-            results['label_points'] = label_points
+        # if 'label_points' in results:
+        #     label_points = results['label_points']
+        #     label_points, label_choices = self._points_random_sampling(
+        #         label_points,
+        #         self.num_points,
+        #         self.sample_range,
+        #         self.replace,
+        #         return_choices=True
+        #     )
+        #     results['label_points'] = label_points
 
         pts_instance_mask = results.get('pts_instance_mask', None)
         pts_semantic_mask = results.get('pts_semantic_mask', None)
@@ -1842,7 +1847,7 @@ class IndoorPatchPointSample(object):
                 flag2 = True
             else:
                 flag2 = np.sum(cur_sem_mask != self.ignore_index) / \
-                               len(cur_sem_mask) >= 0.7
+                    len(cur_sem_mask) >= 0.7
 
             if flag1 and flag2:
                 break
@@ -2018,7 +2023,7 @@ class VoxelBasedPointSampler(object):
                 sampler._max_voxels - voxels.shape[0], sampler._max_num_points,
                 point_dim
             ],
-                                      dtype=points.dtype)
+                dtype=points.dtype)
             padding_points[:] = voxels[0]
             sample_points = np.concatenate([voxels, padding_points], axis=0)
         else:

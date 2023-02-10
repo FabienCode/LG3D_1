@@ -10,6 +10,7 @@ from mmdet3d.core.bbox import box_np_ops as box_np_ops
 from mmdet3d.core.bbox.box_np_ops import corner_to_surfaces_3d
 from mmdet3d.core.bbox.box_np_ops import points_in_convex_polygon_3d_jit
 
+
 @PIPELINES.register_module()
 class LoadMultiViewImageFromFiles(object):
     """Load multi channel images from a list of separate channel files.
@@ -470,6 +471,7 @@ class LoadPointsFromFile(object):
         repr_str += f'use_dim={self.use_dim})'
         return repr_str
 
+
 @PIPELINES.register_module()
 class lg3d_LoadPointsFromFile(object):
     """Load original Points and object Points From File.
@@ -540,7 +542,7 @@ class lg3d_LoadPointsFromFile(object):
                 points = np.fromfile(pts_filename, dtype=np.float32)
 
         return points
-    
+
     def points_random_sampling(self,
                                points,
                                num_sample,
@@ -598,31 +600,44 @@ class lg3d_LoadPointsFromFile(object):
         points = points_class(
             points, points_dim=points.shape[-1], attribute_dims=attribute_dims)
         results['points'] = points
-        
+
         # obtain label point cloud
-        
+
         if 'ann_info' in results:
             corners = results['ann_info']['gt_bboxes_3d'].corners.numpy()
-            label_obj_points_indices = self.find_label_points(label_tmp_points[:, 0:3], corners)
-            label_points_indices = torch.from_numpy(np.sum(label_obj_points_indices, 1))
+            label_obj_points_indices = self.find_label_points(
+                label_tmp_points[:, 0:3], corners)
+            label_points_indices = torch.from_numpy(
+                np.sum(label_obj_points_indices, 1))
             tmp_label_points = label_tmp_points[label_points_indices > 0, :]
-            
-            label_points = np.zeros((16384, 3))
-            if tmp_label_points.shape[0] > 16384:
-                final_label_points = self.points_random_sampling(label_points, 16384)
+
+            label_points = np.zeros((40000, 3))
+            if tmp_label_points.shape[0] > 40000:
+                final_label_points = self.points_random_sampling(
+                    tmp_label_points, 40000)
                 label_points = final_label_points
+            elif tmp_label_points.shape[0] != 0:
+                repeat_arr = int(40000 / tmp_label_points.shape[0])
+                repeat_label_points = tmp_label_points.repeat((repeat_arr), 0)
+                label_points[0: repeat_label_points.shape[0],
+                             :] = repeat_label_points
             else:
-                label_points[0: tmp_label_points.shape[0], :] = tmp_label_points
-            
+                label_points = self.points_random_sampling(
+                    label_tmp_points, 40000)
+
             label_attribute_dims = None
             if self.shift_height:
                 label_floor_height = np.percentile(label_points[:, 2], 0.99)
                 label_height = label_points[:, 2] - label_floor_height
-                label_points = np.concatenate(
-                    [label_points[:, :3], np.expand_dims(label_height, 1), label_points[:, 3:]], 1
-                )
+                try:
+                    label_points = np.concatenate(
+                        [label_points[:, :3], np.expand_dims(
+                            label_height, 1), label_points[:, 3:]], 1
+                    )
+                except:
+                    print("hhahahh")
                 label_attribute_dims = dict(height=3)
-            
+
             if self.use_color:
                 assert len(self.use_dim) >= 6
                 if label_attribute_dims is None:
@@ -651,10 +666,10 @@ class lg3d_LoadPointsFromFile(object):
         repr_str += f'load_dim={self.load_dim}, '
         repr_str += f'use_dim={self.use_dim})'
         return repr_str
-    
+
     def find_label_points(self, points, corners):
         surfaces = corner_to_surfaces_3d(corners)
-        indices = points_in_convex_polygon_3d_jit(points[:, 0: 3], surfaces)
+        indices = points_in_convex_polygon_3d_jit(points[:, :3], surfaces)
         return indices
 
 
@@ -881,5 +896,3 @@ class LoadAnnotations3D(LoadAnnotations):
         repr_str += f'{indent_str}with_bbox_depth={self.with_bbox_depth}, '
         repr_str += f'{indent_str}poly2mask={self.poly2mask})'
         return repr_str
-    
-

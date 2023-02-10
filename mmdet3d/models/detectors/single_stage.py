@@ -106,7 +106,8 @@ class lg3d_SingleStage3DDetector(Base3DDetector):
         self.t_backbone = build_backbone(t_backbone)
         self.label_encoder = build_backbone(label_encoder)
         self.anno_descriptor = build_backbone(anno_descriptor)
-        self.attention = build_backbone(attention)
+        self.attention_1 = build_backbone(attention)
+        self.attention_2 = build_backbone(attention)
         if neck is not None:
             self.neck = build_neck(neck)
         bbox_head.update(train_cfg=train_cfg)
